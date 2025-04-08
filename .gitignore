@@ -1,0 +1,40 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+venv/
+env/
+
+# Environment variables / secrets
+.env
+
+# macOS system files
+.DS_Store
+
+# VS Code project files
+.vscode/
+
+# Log and data files
+*.log
+*.csv
+*.json
+data/
+logs/
+
+# Python packaging
+*.egg-info/
+dist/
+build/
+
+# Jupyter notebooks (if used)
+.ipynb_checkpoints/
+
+# MyPy / Pyright / Pytest cache
+.mypy_cache/
+.pytest_cache/
+
+# Ignore saved model files (optional)
+*.pkl
+*.joblib
