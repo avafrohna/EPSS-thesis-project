@@ -102,7 +102,7 @@ def scrape():
                 "article_text": article_text, 
                 "comments": [{
                     "score": comment["score"],
-                    "text": comment["text"]
+                    "text": comment["text"],
                     "level": comment["level"]}
                     for comment in thread
                     if comment["text"].strip()]
