@@ -23,7 +23,7 @@ def is_today(unix_time):
     dt = datetime.fromtimestamp(unix_time, tz=timezone.utc)
     return dt.date() == date.today()
 
-def scrape_recent_stories(limit=100):
+def scrape_recent_stories(limit=10):
     stories = []
     ids = get_latest_story_ids(limit)
     for item_id in ids:
@@ -44,7 +44,7 @@ def scrape_recent_stories(limit=100):
         time.sleep(0.5)
     return stories
 
-def get_stories_from_today(limit=500):
+def get_stories_from_today(limit=10):
     stories = []
     ids = get_latest_story_ids(limit)
     for item_id in ids:
@@ -55,20 +55,28 @@ def get_stories_from_today(limit=500):
     return stories
 
 if __name__ == "__main__":
-    stories_today = get_stories_from_today(limit=500)
+    stories_today = get_stories_from_today(limit=100)
 
-    stories_today.sort(key=lambda x: x['time'], reverse=True)
+    cve_stories_today = []
+    for item in stories_today:
+        title = item.get("title", "")
+        text = item.get("text", "")
+        content = f"{title} {text}"
+        if "CVE" in content:
+            cve_stories_today.append(item)
 
-    print(f"\n🗓️ Hacker News posts from today ({date.today()}):\n")
+    cve_stories_today.sort(key=lambda x: x['time'], reverse=True)
 
-    if stories_today:
-        storycount = 0
-        for item in stories_today:
+    print(f"\n🛡️ Hacker News posts from today mentioning 'CVE' ({date.today()}):\n")
+
+    if cve_stories_today:
+        for item in cve_stories_today:
             title = item.get("title", "(no title)")
             item_id = item["id"]
+            timestamp = datetime.fromtimestamp(item["time"], tz=timezone.utc).isoformat()
             print(f"🆔 ID: {item_id}")
-            print(f"📌 Title: {title}")
-            storycount += 1
-        print({storycount})
+            print(f"🕒 Posted: {timestamp}")
+            print(f"📌 Title: {title}\n")
+        print(f"✅ Total posts mentioning 'CVE': {len(cve_stories_today)}")
     else:
-        print("No posts found for today.")
+        print("⚠️ No posts mentioning 'CVE' found today.")
