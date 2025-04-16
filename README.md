@@ -3,9 +3,13 @@
 ## Scrapers
 ### Reddit
 
-### Discord
-Channels chosen for scraping
+### HackerNews
+
+### ????
+
+### Mastedon
 
 ### Telegram
 
-### Mastedon
+### Discord
+We decided not to use discord due to a variety of issues with servers allowing scraping.
