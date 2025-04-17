@@ -1,56 +1,79 @@
 import requests
 import time
+import re
+import json
 from datetime import datetime, timezone, date
+from sentence_transformers import SentenceTransformer
 
 BASE_URL = "https://hacker-news.firebaseio.com/v0"
+CVE_PATTERN = re.compile(r"CVE-\d{4}-\d{4,7}", re.IGNORECASE)
+
+model = SentenceTransformer("all-MiniLM-L6-v2")
 
 def get_item(item_id):
     url = f"{BASE_URL}/item/{item_id}.json"
     resp = requests.get(url)
     return resp.json()
 
-def get_latest_story_ids(limit=100):
+def get_latest_story_ids(limit):
     url = f"{BASE_URL}/newstories.json"
     resp = requests.get(url)
     return resp.json()[:limit]
 
-def is_today(unix_time):
-    dt = datetime.fromtimestamp(unix_time, tz=timezone.utc)
-    return dt.date() == date.today()
-
-def get_stories_from_today(limit):
-    stories = []
-    ids = get_latest_story_ids(limit)
-    for item_id in ids:
-        item = get_item(item_id)
-        if item and 'time' in item and is_today(item['time']):
-            stories.append(item)
-        time.sleep(0.5)
-    return stories
+def get_comments(comment_ids):
+    comments = []
+    if not comment_ids:
+        return comments
+    for cid in comment_ids:
+        comment = get_item(cid)
+        if comment and 'text' in comment:
+            comments.append(comment['text'])
+        time.sleep(0.2)
+    return comments
 
 if __name__ == "__main__":
-    stories_today = get_stories_from_today(limit=1500)
+    ids = get_latest_story_ids(limit=2000)
+    cve_stories = []
 
-    cve_stories_today = []
-    for item in stories_today:
-        title = item.get("title", "")
-        text = item.get("text", "")
-        content = f"{title} {text}"
-        if "CVE" in content:
-            cve_stories_today.append(item)
+    for item_id in ids:
+        item = get_item(item_id)
+        if item:
+            title = item.get("title", "")
+            text = item.get("text", "")
+            content = f"{title} {text}"
 
-    cve_stories_today.sort(key=lambda x: x['time'], reverse=True)
+            if "CVE" in content:
+                cves = CVE_PATTERN.findall(content)
+                if cves:
+                    cve_counts = {cve: cves.count(cve) for cve in set(cves)}
+                    permalink = f"https://news.ycombinator.com/item?id={item['id']}"
+                    text_embedding = model.encode(content).tolist()
 
-    print(f"\n🛡️ Hacker News posts from today mentioning 'CVE' ({date.today()}):\n")
+                    comment_texts = get_comments(item.get("kids", []))
+                    comment_embeddings = [model.encode(comment).tolist() for comment in comment_texts]
 
-    if cve_stories_today:
-        for item in cve_stories_today:
-            title = item.get("title", "(no title)")
-            item_id = item["id"]
-            timestamp = datetime.fromtimestamp(item["time"], tz=timezone.utc).isoformat()
-            print(f"🆔 ID: {item_id}")
-            print(f"🕒 Posted: {timestamp}")
-            print(f"📌 Title: {title}\n")
-        print(f"✅ Total posts mentioning 'CVE': {len(cve_stories_today)}")
+                    cve_stories.append({
+                        "permalink": permalink,
+                        "cves": cves,
+                        "cve_counts": cve_counts,
+                        "title": title,
+                        "text_embedding": text_embedding,
+                        "comment_embeddings": comment_embeddings
+                    })
+
+    output_filename = f"hackernews_cve_{date.today().isoformat()}.json"
+    with open(output_filename, "w") as f:
+        json.dump(cve_stories, f, indent=2)
+
+    print(f"\n🛡️ Hacker News posts mentioning 'CVE' (most recent {len(ids)} checked):\n")
+
+    if cve_stories:
+        for post in cve_stories:
+            print(f"🔗 {post['permalink']}")
+            print(f"📌 Title: {post['title']}")
+            print(f"🧠 CVEs found: {post['cves']}")
+            print(f"🧾 CVE counts: {post['cve_counts']}\n")
+        print(f"✅ Total posts mentioning 'CVE': {len(cve_stories)}")
+        print(f"💾 Saved results to {output_filename}")
     else:
-        print("⚠️ No posts mentioning 'CVE' found today.")
+        print("⚠️ No posts mentioning 'CVE' found.")
