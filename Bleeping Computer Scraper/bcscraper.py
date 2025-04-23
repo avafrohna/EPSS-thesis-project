@@ -1,3 +1,5 @@
+import re
+import json
 import requests
 from bs4 import BeautifulSoup
 import time
@@ -14,19 +16,18 @@ HEADERS = {
 
 BASE_URL = "https://www.bleepingcomputer.com/"
 TARGET_DATE = "April 22, 2025"
+cve_pattern = re.compile(r"CVE-\d{4}-\d{4,7}")
 
 try:
-    print("[1] Fetching front page...")
     response = requests.get(BASE_URL, headers=HEADERS)
     response.raise_for_status()
 except requests.RequestException as e:
-    print(f"Error fetching homepage: {e}")
-    exit(1)
+    raise SystemExit(f"Error fetching homepage: {e}")
 
 soup = BeautifulSoup(response.text, "html.parser")
-
-articles = []
 date_tags = soup.find_all("li", class_="bc_news_date")
+
+results = []
 
 for date_tag in date_tags:
     if date_tag.get_text(strip=True) == TARGET_DATE:
@@ -36,9 +37,7 @@ for date_tag in date_tags:
             continue
 
         title_tag = container.find("h4") or container.find("h3")
-        if not title_tag:
-            continue
-        link_tag = title_tag.find("a")
+        link_tag = title_tag.find("a") if title_tag else None
         if not link_tag:
             continue
 
@@ -46,7 +45,6 @@ for date_tag in date_tags:
         href = link_tag["href"]
         full_url = href if href.startswith("http") else BASE_URL.rstrip("/") + href
 
-        # Fetch the article content
         try:
             time.sleep(1)
             article_response = requests.get(full_url, headers=HEADERS)
@@ -59,18 +57,19 @@ for date_tag in date_tags:
         for tag in article_soup.find_all("p"):
             content += tag.get_text(separator=" ", strip=True) + " "
 
-        content = content.strip()
-        preview = content[:1000] + ("..." if len(content) > 1000 else "")
+        cves = list(set(cve_pattern.findall(title + " " + content)))
+        if cves:
+            entry = {
+                "cves": cves,
+                "cve_counts": {cve: content.count(cve) for cve in cves},
+                "title": title,
+                "permalink": full_url,
+                "text": content.strip(),
+                "comments": []
+            }
+            results.append(entry)
 
-        articles.append((title, full_url, TARGET_DATE, preview))
+with open("bleepingcomputer_scraper.json", "w") as f:
+    json.dump(results, f, indent=2)
 
-# Output
-if articles:
-    for title, url, date, preview in articles:
-        print("Title:", title)
-        print("URL:", url)
-        print("Published Date:", date)
-        print("Preview:", preview)
-        print("-" * 80)
-else:
-    print(f"✅ DONE. Found 0 posts from {TARGET_DATE}.")
+print(f"✅ DONE. Found {len(results)} CVE-related articles.")
