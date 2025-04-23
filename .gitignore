@@ -18,8 +18,6 @@ env/
 
 # Log and data files
 *.log
-*.csv
-*.json
 data/
 logs/
 

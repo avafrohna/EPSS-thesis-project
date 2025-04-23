@@ -1,0 +1,16 @@
+[
+  {
+    "cves": [
+      "CVE-2025-3155"
+    ],
+    "cve_counts": {
+      "CVE-2025-3155": 1
+    },
+    "title": "Dangerous Arbitrary File Read Vulnerability in Yelp (CVE-2025-3155)",
+    "permalink": "https://news.ycombinator.com/item?id=43701036",
+    "text": "Dangerous Arbitrary File Read Vulnerability in Yelp (CVE-2025-3155) ",
+    "comments": [
+      "I&#x27;m I missing something, or is this being handled <i>incredibly poorly</i> on Gnome&#x27;s side? Patches available for months, but still waiting for even an initial review weeks after public disclosure?"
+    ]
+  }
+]
