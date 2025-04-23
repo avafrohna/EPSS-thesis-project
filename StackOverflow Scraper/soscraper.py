@@ -1,63 +1,80 @@
 import requests
-from bs4 import BeautifulSoup
-import re
 import json
-
-url = "https://stackoverflow.com/questions"
-headers = {"User-Agent": "Mozilla/5.0"}
-
-response = requests.get(url, headers=headers)
-soup = BeautifulSoup(response.text, "html.parser")
-
-question_summaries = soup.find_all("div", class_="s-post-summary")
+import re
+import os
+from datetime import datetime, timedelta
 
 def extract_cves(text):
     return re.findall(r'CVE-\d{4}-\d{4,7}', text)
 
+# Define the date range for April 19, 2025
+from_date = int(datetime(2025, 4, 10).timestamp())
+to_date = int((datetime(2025, 4, 10) + timedelta(days=1)).timestamp())
+
+url = "https://api.stackexchange.com/2.3/questions"
+
+params = {
+    "fromdate": from_date,
+    "todate": to_date,
+    "order": "desc",
+    "sort": "creation",
+    "site": "stackoverflow",
+    "pagesize": 100,
+    "filter": "withbody"  # Include full body content
+}
+
 results = []
+has_more = True
+page = 1
 
-for summary in question_summaries:
-    time_elem = summary.find("span", class_="relativetime")
-    if not time_elem:
-        continue
-    time_text = time_elem.get_text().strip().lower()
-    if not any(kw in time_text for kw in ["ago", "today", "yesterday"]):
-        continue
+while has_more:
+    print(f"🔎 Fetching page {page}")
+    params["page"] = page
+    response = requests.get(url, params=params)
+    data = response.json()
 
-    title_elem = summary.find("a", class_="s-link")
-    if not title_elem:
-        continue
+    for item in data.get("items", []):
+        title = item.get("title", "")
+        body = item.get("body", "")
+        link = item.get("link", "")
 
-    title = title_elem.get_text().strip()
-    link = "https://stackoverflow.com" + title_elem["href"]
+        found_cves = extract_cves(title + " " + body)
+        if not found_cves:
+            continue
 
-    # Visit the question page to get full content
-    post_res = requests.get(link, headers=headers)
-    post_soup = BeautifulSoup(post_res.text, "html.parser")
+        cve_counts = {cve: 1 for cve in found_cves}
 
-    content_elem = post_soup.find("div", class_="s-prose js-post-body")
-    content_text = content_elem.get_text().strip() if content_elem else ""
+        results.append({
+            "cves": found_cves,
+            "cve_counts": cve_counts,
+            "title": title,
+            "permalink": link,
+            "text": body,
+            "comments": []
+        })
 
-    found_cves = extract_cves(title + " " + content_text)
-    if not found_cves:
-        continue
+    has_more = data.get("has_more", False)
+    page += 1
 
-    cve_counts = {cve: 1 for cve in found_cves}
-
-    result_entry = {
-        "cves": found_cves,
-        "cve_counts": cve_counts,
-        "title": title,
-        "permalink": link,
-        "text": content_text,
-        "comments": []  # You can extract comments if needed
-    }
-
-    results.append(result_entry)
-
-if results:
-    with open("stackoverflow_scraper.json", "w") as f:
-        json.dump(results, f, indent=2)
-    print("✅ CVE results saved to stackoverflow_scraper.json")
+# Load existing data if file exists
+json_file = "stackoverflow_scraper.json"
+if os.path.exists(json_file):
+    with open(json_file, "r") as f:
+        try:
+            existing_data = json.load(f)
+        except json.JSONDecodeError:
+            existing_data = []
 else:
-    print("❌ No CVEs found.")
+    existing_data = []
+
+# Prevent duplicates using permalinks
+existing_links = {entry["permalink"] for entry in existing_data}
+new_entries = [entry for entry in results if entry["permalink"] not in existing_links]
+
+if new_entries:
+    combined_data = existing_data + new_entries
+    with open(json_file, "w") as f:
+        json.dump(combined_data, f, indent=2)
+    print(f"✅ Added {len(new_entries)} new CVE entries to {json_file}")
+else:
+    print("❌ No new CVEs found.")
