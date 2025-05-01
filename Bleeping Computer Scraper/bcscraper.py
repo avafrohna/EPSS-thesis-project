@@ -27,13 +27,13 @@ while True:
         response = requests.get(page_url, headers=HEADERS)
         response.raise_for_status()
     except requests.RequestException:
-        break  # Stop if the page fails to load
+        break
 
     soup = BeautifulSoup(response.text, "html.parser")
     date_tags = soup.find_all("li", class_="bc_news_date")
 
     if not date_tags:
-        break  # No more news items found
+        break
 
     for date_tag in date_tags:
         date_text = date_tag.get_text(strip=True)
@@ -83,7 +83,6 @@ while True:
 
     page += 1
 
-# Load existing JSON and append new results
 try:
     with open("bleepingcomputer_scraper.json", "r") as f:
         existing_data = json.load(f)
