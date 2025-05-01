@@ -15,22 +15,30 @@ HEADERS = {
 }
 
 BASE_URL = "https://www.bleepingcomputer.com/"
-TARGET_DATE = "April 22, 2025"
+TARGET_DATE = "April 28, 2025"
 cve_pattern = re.compile(r"CVE-\d{4}-\d{4,7}")
 
-try:
-    response = requests.get(BASE_URL, headers=HEADERS)
-    response.raise_for_status()
-except requests.RequestException as e:
-    raise SystemExit(f"Error fetching homepage: {e}")
-
-soup = BeautifulSoup(response.text, "html.parser")
-date_tags = soup.find_all("li", class_="bc_news_date")
-
 results = []
+page = 1
 
-for date_tag in date_tags:
-    if date_tag.get_text(strip=True) == TARGET_DATE:
+while True:
+    page_url = BASE_URL if page == 1 else f"{BASE_URL}page/{page}/"
+    try:
+        response = requests.get(page_url, headers=HEADERS)
+        response.raise_for_status()
+    except requests.RequestException:
+        break  # Stop if the page fails to load
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    date_tags = soup.find_all("li", class_="bc_news_date")
+
+    if not date_tags:
+        break  # No more news items found
+
+    for date_tag in date_tags:
+        date_text = date_tag.get_text(strip=True)
+        if date_text != TARGET_DATE:
+            continue
         meta_ul = date_tag.find_parent("ul")
         container = meta_ul.find_parent() if meta_ul else None
         if not container:
@@ -44,7 +52,7 @@ for date_tag in date_tags:
         title = link_tag.get_text(strip=True)
         href = link_tag["href"]
         full_url = href if href.startswith("http") else BASE_URL.rstrip("/") + href
-
+            
         try:
             time.sleep(1)
             article_response = requests.get(full_url, headers=HEADERS)
@@ -69,7 +77,20 @@ for date_tag in date_tags:
             }
             results.append(entry)
 
+    pagination = soup.find("ul", class_="cz-pagination")
+    if not pagination or not pagination.find("a", string=str(page + 1)):
+        break
+
+    page += 1
+
+# Load existing JSON and append new results
+try:
+    with open("bleepingcomputer_scraper.json", "r") as f:
+        existing_data = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    existing_data = []
+
 with open("bleepingcomputer_scraper.json", "w") as f:
-    json.dump(results, f, indent=2)
+    json.dump(existing_data + results, f, indent=2)
 
 print(f"✅ DONE. Found {len(results)} CVE-related articles.")
