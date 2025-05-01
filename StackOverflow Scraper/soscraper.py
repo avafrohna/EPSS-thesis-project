@@ -2,14 +2,15 @@ import requests
 import json
 import re
 import os
-from datetime import datetime, timedelta
+import time
+from datetime import datetime, timedelta, timezone
 
 def extract_cves(text):
     return re.findall(r'CVE-\d{4}-\d{4,7}', text)
 
-# Define the date range for April 19, 2025
-from_date = int(datetime(2025, 4, 10).timestamp())
-to_date = int((datetime(2025, 4, 10) + timedelta(days=1)).timestamp())
+target_day = datetime(2025, 4, 17, tzinfo=timezone.utc)
+from_date = int(target_day.timestamp())
+to_date = int((target_day + timedelta(days=1)).timestamp())
 
 url = "https://api.stackexchange.com/2.3/questions"
 
@@ -20,7 +21,7 @@ params = {
     "sort": "creation",
     "site": "stackoverflow",
     "pagesize": 100,
-    "filter": "withbody"  # Include full body content
+    "filter": "withbody",
 }
 
 results = []
@@ -31,7 +32,13 @@ while has_more:
     print(f"🔎 Fetching page {page}")
     params["page"] = page
     response = requests.get(url, params=params)
-    data = response.json()
+    
+    try:
+        data = response.json()
+    except json.JSONDecodeError:
+        print("❌ Failed to decode JSON. Raw response:")
+        print(response.text)
+        break
 
     for item in data.get("items", []):
         title = item.get("title", "")
@@ -56,7 +63,8 @@ while has_more:
     has_more = data.get("has_more", False)
     page += 1
 
-# Load existing data if file exists
+    time.sleep(1.5)
+
 json_file = "stackoverflow_scraper.json"
 if os.path.exists(json_file):
     with open(json_file, "r") as f:
@@ -67,7 +75,6 @@ if os.path.exists(json_file):
 else:
     existing_data = []
 
-# Prevent duplicates using permalinks
 existing_links = {entry["permalink"] for entry in existing_data}
 new_entries = [entry for entry in results if entry["permalink"] not in existing_links]
 
