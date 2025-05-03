@@ -18,6 +18,9 @@ HEADERS = {
 
 BASE_URL = "https://www.bleepingcomputer.com/"
 TARGET_DATE = "2025-03-20"
+target_date = datetime.strptime(TARGET_DATE, "%Y-%m-%d").date()
+found_target = False
+stop_scraping = False
 cve_pattern = re.compile(r"CVE-\d{4}-\d{4,7}")
 
 results = []
@@ -43,7 +46,13 @@ while page <= 100:
     for date_tag in date_tags:
         date_text = date_tag.get_text(strip=True)
         formatted_date = datetime.strptime(date_text, "%B %d, %Y").strftime("%Y-%m-%d")
-        if formatted_date != TARGET_DATE:
+        article_date = datetime.strptime(formatted_date, "%Y-%m-%d").date()
+        if article_date == target_date:
+            found_target = True
+        elif article_date < target_date and found_target:
+            stop_scraping = True
+            break
+        elif not found_target:
             continue
         meta_ul = date_tag.find_parent("ul")
         container = meta_ul.find_parent() if meta_ul else None
@@ -85,6 +94,10 @@ while page <= 100:
             }
             results.append(entry)
             print(f"✅ Found article on {formatted_date}: {title}")
+
+    if stop_scraping:
+        print(f"🛑 Encountered older article on page {page}, stopping.")
+        break
 
     print("➡️ Moving to next page...\n")
     page += 1
