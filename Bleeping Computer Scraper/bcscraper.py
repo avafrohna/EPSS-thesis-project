@@ -17,13 +17,13 @@ HEADERS = {
 }
 
 BASE_URL = "https://www.bleepingcomputer.com/"
-TARGET_DATE = "2025-05-02"
+TARGET_DATE = "2025-03-20"
 cve_pattern = re.compile(r"CVE-\d{4}-\d{4,7}")
 
 results = []
 page = 1
 
-while True:
+while page <= 100:
     page_url = BASE_URL if page == 1 else f"{BASE_URL}page/{page}/"
     try:
         response = requests.get(page_url, headers=HEADERS)
@@ -31,10 +31,13 @@ while True:
     except requests.RequestException:
         break
 
+    print(f"📄 Scraping page {page}...")
+
     soup = BeautifulSoup(response.text, "html.parser")
     date_tags = soup.find_all("li", class_="bc_news_date")
 
     if not date_tags:
+        print("⚠️ No date tags found. Ending pagination.")
         break
 
     for date_tag in date_tags:
@@ -65,8 +68,10 @@ while True:
             continue
 
         content = ""
-        for tag in article_soup.find_all("p"):
-            content += tag.get_text(separator=" ", strip=True) + " "
+        article_body = article_soup.find("div", class_="articleBody")
+        if article_body:
+            paragraphs = article_body.find_all("p")
+            content = " ".join(p.get_text(strip=True) for p in paragraphs)
 
         cves = list(set(cve_pattern.findall(title + " " + content)))
         if cves:
@@ -79,11 +84,9 @@ while True:
                 "text": content.strip(),
             }
             results.append(entry)
+            print(f"✅ Found article on {formatted_date}: {title}")
 
-    pagination = soup.find("ul", class_="cz-pagination")
-    if not pagination or not pagination.find("a", string=str(page + 1)):
-        break
-
+    print("➡️ Moving to next page...\n")
     page += 1
 
 csv_file = "bleepingcomputer_scraper.csv"
