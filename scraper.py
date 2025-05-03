@@ -44,7 +44,7 @@ for x in range(1):
     for t in post:
         if "CVE" in  (t['content']):
             if contains_cve(t['content']):
-                post = {"body": parse_html_body(t['content']), "id": t['id'], "created_at": t['created_at']}
+                post = {"body": parse_html_body(t['content']), "id": t['id'], "created_at": t['created_at'],  }
                 cve_posts.append(post)
                 # print(parse_html_body(t['content']))
 
