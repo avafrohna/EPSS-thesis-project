@@ -1,7 +1,9 @@
 import re
 import json
+import csv
 import requests
 from bs4 import BeautifulSoup
+from datetime import datetime
 import time
 
 HEADERS = {
@@ -15,7 +17,7 @@ HEADERS = {
 }
 
 BASE_URL = "https://www.bleepingcomputer.com/"
-TARGET_DATE = "April 28, 2025"
+TARGET_DATE = "2025-05-02"
 cve_pattern = re.compile(r"CVE-\d{4}-\d{4,7}")
 
 results = []
@@ -37,7 +39,8 @@ while True:
 
     for date_tag in date_tags:
         date_text = date_tag.get_text(strip=True)
-        if date_text != TARGET_DATE:
+        formatted_date = datetime.strptime(date_text, "%B %d, %Y").strftime("%Y-%m-%d")
+        if formatted_date != TARGET_DATE:
             continue
         meta_ul = date_tag.find_parent("ul")
         container = meta_ul.find_parent() if meta_ul else None
@@ -70,10 +73,10 @@ while True:
             entry = {
                 "cves": cves,
                 "cve_counts": {cve: content.count(cve) for cve in cves},
+                "date": formatted_date,
                 "title": title,
-                "permalink": full_url,
+                "link": full_url,
                 "text": content.strip(),
-                "comments": []
             }
             results.append(entry)
 
@@ -83,13 +86,21 @@ while True:
 
     page += 1
 
-try:
-    with open("bleepingcomputer_scraper.json", "r") as f:
-        existing_data = json.load(f)
-except (FileNotFoundError, json.JSONDecodeError):
-    existing_data = []
+csv_file = "bleepingcomputer_scraper.csv"
+fieldnames = ["cves", "cve_counts", "date", "title", "link", "text"]
 
-with open("bleepingcomputer_scraper.json", "w") as f:
-    json.dump(existing_data + results, f, indent=2)
+with open(csv_file, "a", newline="", encoding="utf-8") as f:
+    writer = csv.DictWriter(f, fieldnames=fieldnames)
+    if f.tell() == 0:
+        writer.writeheader()
+    for entry in results:
+        writer.writerow({
+            "cves": "; ".join(entry["cves"]),
+            "cve_counts": json.dumps(entry["cve_counts"]),
+            "date": entry["date"],
+            "title": entry["title"],
+            "link": entry["link"],
+            "text": entry["text"],
+        })
 
 print(f"✅ DONE. Found {len(results)} CVE-related articles.")
