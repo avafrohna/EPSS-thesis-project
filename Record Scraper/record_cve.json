@@ -1,0 +1,62 @@
+[
+    {
+        "cves": [
+        "CVE-2025-29824"
+        ],
+        "cve_counts": {
+        "CVE-2025-29824": 1
+        },
+        "title": "Microsoft: Zero-day bug used in ransomware attacks on US real estate firms",
+        "permalink": "https://therecord.media/microsoft-zero-day-used-ransomware-attack-real-estate",
+        "text": "Hackers used CVE-2025-29824, a vulnerability in the Windows Common Log File System Driver (CLFS), in ransomware attacks on U.S. real estate firms and organizations in Saudi Arabia, Spain, and Venezuela. The bug enables privilege escalation and was exploited using malware called PipeMagic. Microsoft has issued a patch, although some Windows versions remain unpatched. The attack is attributed to the threat actor 'Storm-2460'.",
+        "comments": []
+    },
+    {
+        "cves": [
+            "CVE-2025-31161"
+        ],
+        "cve_counts": {
+            "CVE-2025-31161": 1
+        },
+        "title": "CISA, experts warn of Crush file transfer attacks as ransomware gang makes threats",
+        "permalink": "https://therecord.media/crushftp-vulnerability-exploited",
+        "text": "A vulnerability in CrushFTP (CVE-2025-31161) is being actively exploited by ransomware gangs. The flaw was discovered by Outpost24 and initially responsibly disclosed, but another party published the exploit method prematurely. CISA and security experts have confirmed attacks targeting this vulnerability, with the Kill ransomware group claiming they exfiltrated sensitive data. Federal agencies were given until April 28 to patch the flaw. Incident responders have observed exploitation across industries including marketing, retail, and semiconductors.",
+        "comments": []
+    },
+    {
+        "cves": [
+          "CVE-2024-11859"
+        ],
+        "cve_counts": {
+          "CVE-2024-11859": 1
+        },
+        "title": "Flaw in ESET security software used to spread malware from ToddyCat group",
+        "permalink": "https://therecord.media/eset-software-vulnerability-malware-toddycat-apt",
+        "text": "CVE-2024-11859, a vulnerability in ESET antivirus software, was exploited to load malicious DLLs via proxying techniques. Kaspersky linked the attack to the ToddyCat APT group. The flaw, confirmed and patched by ESET, allowed malware to run undetected on targeted systems. The attackers used a tool called TCDSB based on EDRSandBlast, enabling stealth execution and defense evasion. Although ESET said it had not observed active exploitation, the campaign highlights risks even from security tools when leveraged by advanced actors.",
+        "comments": []
+    },
+    {
+        "cves": [
+          "CVE-2025-22457"
+        ],
+        "cve_counts": {
+          "CVE-2025-22457": 1
+        },
+        "title": "CISA warns of latest Ivanti firewall bug being exploited by suspected Chinese hackers",
+        "permalink": "https://therecord.media/cisa-ivanti-firewall-bug-exploitation",
+        "text": "CVE-2025-22457 is a critical vulnerability affecting Ivanti Connect Secure, Policy Secure, and ZTA Gateways. CISA confirmed that the flaw is being actively exploited, with attribution pointing to a suspected China-based group known as UNC5221. The attackers deployed a malware toolkit dubbed Spawn and a backdoor named Brushfire. Mandiant and Google's threat teams linked this to previous Ivanti bugs, such as CVE-2025-0282 and CVE-2023-46805. Ivanti warned that older, unsupported devices remain at significant risk, urging users to upgrade and use integrity checkers for compromise detection.",
+        "comments": []
+    },
+    {
+        "cves": [
+          "CVE-2025-0282"
+        ],
+        "cve_counts": {
+          "CVE-2025-0282": 1
+        },
+        "title": "Latest Ivanti bug, paired with malware, earns an alert from CISA",
+        "permalink": "https://therecord.media/cisa-alert-ivanti-bug-resurge-malware",
+        "text": "CISA issued an alert regarding the exploitation of CVE-2025-0282 in Ivanti products, which is being used alongside malware called Resurge. Suspected China-linked hackers have deployed this malware to manipulate system files, escalate privileges, and create persistent access. Mandiant and Japanese cybersecurity officials link this to the broader Spawn malware family, capable of surviving patches and bypassing Ivanti’s Integrity Checker Tool. The campaign has impacted organizations across government and critical infrastructure since at least December 2024.",
+        "comments": []
+    }
+  ]
