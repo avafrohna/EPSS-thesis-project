@@ -6,17 +6,21 @@ from datetime import datetime
 import time
 import random
 
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 12_3_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Mobile/15E148 Safari/604.1",
+]
+
 HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36"
-    ),
+    "User-Agent": random.choice(USER_AGENTS),
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
     "Referer": "https://www.google.com/",
 }
 
 BASE_URL = "https://www.bleepingcomputer.com/"
-TARGET_DATE = "2025-04-19"
+TARGET_DATE = "2025-05-19"
 target_date = datetime.strptime(TARGET_DATE, "%Y-%m-%d").date()
 found_target = False
 stop_scraping = False
@@ -78,7 +82,7 @@ while page <= 100:
         full_url = href if href.startswith("http") else BASE_URL.rstrip("/") + href
             
         try:
-            time.sleep(1 + random.random())
+            time.sleep(random.uniform(2, 5))
             article_response = requests.get(full_url, headers=HEADERS)
             article_response.raise_for_status()
             article_soup = BeautifulSoup(article_response.text, "html.parser")
