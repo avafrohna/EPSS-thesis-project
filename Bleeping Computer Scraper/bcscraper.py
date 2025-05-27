@@ -20,7 +20,7 @@ HEADERS = {
 }
 
 BASE_URL = "https://www.bleepingcomputer.com/"
-TARGET_DATE = "2025-05-19"
+TARGET_DATE = "2025-05-26"
 target_date = datetime.strptime(TARGET_DATE, "%Y-%m-%d").date()
 found_target = False
 stop_scraping = False
