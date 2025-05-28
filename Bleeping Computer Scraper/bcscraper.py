@@ -1,23 +1,26 @@
 import re
-import json
 import csv
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 import time
+import random
+
+USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 12_3_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 15_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.4 Mobile/15E148 Safari/604.1",
+]
 
 HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/123.0.0.0 Safari/537.36"
-    ),
+    "User-Agent": random.choice(USER_AGENTS),
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
     "Referer": "https://www.google.com/",
 }
 
 BASE_URL = "https://www.bleepingcomputer.com/"
-TARGET_DATE = "2025-03-20"
+TARGET_DATE = "2025-05-26"
 target_date = datetime.strptime(TARGET_DATE, "%Y-%m-%d").date()
 found_target = False
 stop_scraping = False
@@ -31,13 +34,16 @@ while page <= 100:
     try:
         response = requests.get(page_url, headers=HEADERS)
         response.raise_for_status()
-    except requests.RequestException:
+    except requests.RequestException as e:
+        print(f"⚠️ Failed to fetch page {page}: {e}")
         break
 
     print(f"📄 Scraping page {page}...")
 
     soup = BeautifulSoup(response.text, "html.parser")
     date_tags = soup.find_all("li", class_="bc_news_date")
+    if not date_tags:
+        date_tags = soup.find_all("span", class_="bc_news_date")
 
     if not date_tags:
         print("⚠️ No date tags found. Ending pagination.")
@@ -45,8 +51,13 @@ while page <= 100:
 
     for date_tag in date_tags:
         date_text = date_tag.get_text(strip=True)
-        formatted_date = datetime.strptime(date_text, "%B %d, %Y").strftime("%Y-%m-%d")
-        article_date = datetime.strptime(formatted_date, "%Y-%m-%d").date()
+        try:
+            formatted_date = datetime.strptime(date_text, "%B %d, %Y").strftime("%Y-%m-%d")
+            article_date = datetime.strptime(formatted_date, "%Y-%m-%d").date()
+        except ValueError as e:
+            print(f"⚠️ Failed to parse date '{date_text}': {e}")
+            continue
+        
         if article_date == target_date:
             found_target = True
         elif article_date < target_date and found_target:
@@ -54,14 +65,16 @@ while page <= 100:
             break
         elif not found_target:
             continue
-        meta_ul = date_tag.find_parent("ul")
-        container = meta_ul.find_parent() if meta_ul else None
+
+        container = date_tag.find_parent("li")
         if not container:
+            print("⚠️ Failed to find article container for date tag.")
             continue
 
         title_tag = container.find("h4") or container.find("h3")
         link_tag = title_tag.find("a") if title_tag else None
-        if not link_tag:
+        if not link_tag or not link_tag.get("href"):
+            print("⚠️ No link found for article, skipping...")
             continue
 
         title = link_tag.get_text(strip=True)
@@ -69,11 +82,12 @@ while page <= 100:
         full_url = href if href.startswith("http") else BASE_URL.rstrip("/") + href
             
         try:
-            time.sleep(1)
+            time.sleep(random.uniform(2, 5))
             article_response = requests.get(full_url, headers=HEADERS)
             article_response.raise_for_status()
             article_soup = BeautifulSoup(article_response.text, "html.parser")
-        except requests.RequestException:
+        except requests.RequestException as e:
+            print(f"⚠️ Failed to fetch article '{full_url}': {e}")
             continue
 
         content = ""
@@ -93,30 +107,26 @@ while page <= 100:
                 "text": content.strip(),
             }
             results.append(entry)
-            print(f"✅ Found article on {formatted_date}: {title}")
 
     if stop_scraping:
-        print(f"🛑 Encountered older article on page {page}, stopping.")
         break
 
-    print("➡️ Moving to next page...\n")
     page += 1
 
-csv_file = "bleepingcomputer_scraper.csv"
-fieldnames = ["cves", "cve_counts", "date", "title", "link", "text"]
+csv_file = "bleepingcomputer_cve_cleaned.csv"
+fieldnames = ["cve", "timestamp", "source", "text"]
 
 with open(csv_file, "a", newline="", encoding="utf-8") as f:
     writer = csv.DictWriter(f, fieldnames=fieldnames)
     if f.tell() == 0:
         writer.writeheader()
     for entry in results:
-        writer.writerow({
-            "cves": "; ".join(entry["cves"]),
-            "cve_counts": json.dumps(entry["cve_counts"]),
-            "date": entry["date"],
-            "title": entry["title"],
-            "link": entry["link"],
-            "text": entry["text"],
-        })
+        for cve in entry["cves"]:
+            writer.writerow({
+                "cve": cve,
+                "timestamp": entry["date"],
+                "source": "bleeping computer",
+                "text": entry["text"],
+            })
 
-print(f"✅ DONE. Found {len(results)} CVE-related articles.")
+print(f"✅ DONE. Found {len(results)} CVE-related articles on {TARGET_DATE}.")
