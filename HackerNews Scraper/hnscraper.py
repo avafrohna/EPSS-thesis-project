@@ -47,7 +47,7 @@ def clean_text(text):
 print(f"Fetching Hacker News posts from {one_week_ago} to {today}...")
 max_id = get_max_item_id()
 
-ids_to_check = range(max_id, max_id - 100000, -1)
+ids_to_check = range(max_id, max_id - 500000, -1)
 
 with ThreadPoolExecutor(max_workers=20) as executor:
     futures = {executor.submit(fetch_item, i): i for i in ids_to_check}
@@ -84,7 +84,7 @@ with ThreadPoolExecutor(max_workers=20) as executor:
         info = extract_info(item)
         collected.append((cves, info))
 
-print(f"\n🧮 Finished scanning. Total posts checked: {max_id - (max_id - 100000)}")
+print(f"\n🧮 Finished scanning. Total posts checked: {max_id - (max_id - 500000)}")
 print(f"\n✅ Collected {len(collected)} posts from {one_week_ago} to {today} mentioning CVEs.\n")
 
 file_exists = os.path.exists(output_file)
