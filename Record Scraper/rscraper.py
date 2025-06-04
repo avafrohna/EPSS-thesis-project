@@ -1,89 +1,126 @@
 import json
 import re
+import csv
+import os
+import time
+from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
-import time
 
-CVE_REGEX = re.compile(r'CVE-\d{4}-\d{4,7}', re.IGNORECASE)
+BASE_URL = "https://therecord.media"
+START_URL = f"{BASE_URL}/news"
+CVE_PATTERN = re.compile(r"CVE-\d{4}-\d{4,7}", re.IGNORECASE)
+output_file = "record_cve_cleaned.csv"
+
+def clean_text(text):
+    clean = re.sub(r'<[^>]+>', '', text)
+    clean = re.sub(r'\s+', ' ', clean)
+    return clean.strip()
 
 options = Options()
 options.add_argument("--headless=new")
 driver = webdriver.Chrome(options=options)
+article_driver = webdriver.Chrome(options=options)
 
-BASE_URL = "https://therecord.media"
-START_URL = f"{BASE_URL}/news/cybercrime"
+print("📄 Fetching Record articles...")
 
-results = []
+collected = []
 seen = set()
+max_articles = 30
+fetched_articles = 0
+page = 1
 
-driver.get(START_URL)
-time.sleep(3)
-soup = BeautifulSoup(driver.page_source, "html.parser")
-next_data_script = soup.find("script", id="__NEXT_DATA__")
-if not next_data_script:
-    print("❌ Could not find Next.js data block.")
-else:
-    next_data = json.loads(next_data_script.string)
-    page_props = next_data["props"]["pageProps"]
-    
-    articles = []
-    if "briefs" in page_props:
-        articles.extend(page_props["briefs"])
-    if "latestNewsItems" in page_props:
-        articles.extend(page_props["latestNewsItems"])
+while fetched_articles < max_articles:
+    print(f"🌐 Loading page {page}...")
+    driver.get(f"{START_URL}?page={page}")
+    time.sleep(3)
+    soup = BeautifulSoup(driver.page_source, "html.parser")
 
-    for article in articles:
-        date_str = article["attributes"]["date"][:10]
-        title = article["attributes"]["title"]
-        slug = article["attributes"]["page"]["data"]["attributes"]["slug"]
-        article_url = f"{BASE_URL}{slug}"
+    article_links = [
+        a["href"]
+        for a in soup.select("a[href^='/']")
+        if (
+            a.get("href")
+            and re.match(r"^/[^/]+$", a["href"])  # only top-level slugs like /slug-title
+            and not any(x in a["href"] for x in ["/tags/", "/category/", "/news/", "/podcast", "/subscribe", "/about", "/contact"])
+        )
+    ]
 
-        if article_url in seen:
+    unique_articles = []
+    for href in article_links:
+        if href in seen:
             continue
-        seen.add(article_url)
+        seen.add(href)
+        unique_articles.append(href)
 
-        driver.get(article_url)
-        time.sleep(2)
-        article_soup = BeautifulSoup(driver.page_source, "html.parser")
+    if not unique_articles:
+        break
 
-        content_block = article_soup.find("article") or article_soup.find("div", {"class": lambda x: x and "article" in x.lower()})
-        if not content_block:
-            continue
+    for href in unique_articles:
+        if fetched_articles >= max_articles:
+            break
 
-        paragraphs = content_block.find_all("p")
-        text_content = "\n".join(p.get_text(strip=True) for p in paragraphs)
+        article_url = BASE_URL + href
+        print(f"🔄 Processing article {fetched_articles + 1}: {article_url}")
 
-        cve_matches = CVE_REGEX.findall(title + " " + text_content)
-        if not cve_matches:
-            continue
+        try:
+            article_driver.get(article_url)
+            time.sleep(2)
+            article_soup = BeautifulSoup(article_driver.page_source, "html.parser")
 
-        cve_counts = {}
-        for cve in cve_matches:
-            cve_counts[cve] = cve_counts.get(cve, 0) + 1
+            # Extract title
+            title_tag = article_soup.find("h1")
+            title = title_tag.get_text(strip=True) if title_tag else "Untitled"
 
-        entry = {
-            "cves": list(set(cve_matches)),
-            "cve_counts": cve_counts,
-            "title": title,
-            "permalink": article_url,
-            "text": text_content,
-            "comments": []
-        }
+            # Extract date
+            date_tag = article_soup.find("time")
+            date = date_tag["datetime"][:10] if date_tag and date_tag.has_attr("datetime") else datetime.today().strftime("%Y-%m-%d")
 
-        results.append(entry)
+            # Extract content
+            content_block = article_soup.find("article") or article_soup.find("div", {"class": lambda x: x and "article" in x.lower()})
+            if not content_block:
+                fetched_articles += 1
+                continue
 
-try:
-    with open("record_cve.json", "r") as f:
-        existing_data = json.load(f)
-except (FileNotFoundError, json.JSONDecodeError):
-    existing_data = []
+            paragraphs = content_block.find_all("p")
+            text_content = "\n".join(p.get_text(strip=True) for p in paragraphs)
+            content = f"{title} {text_content}"
 
-existing_links = {entry["permalink"] for entry in existing_data}
-new_results = [entry for entry in results if entry["permalink"] not in existing_links]
-combined_data = existing_data + new_results
-with open("record_cve.json", "w") as f:
-    json.dump(combined_data, f, indent=2)
+            cve_matches = CVE_PATTERN.findall(content)
+            if cve_matches:
+                print(f"🔎 Found CVEs in article: {set(cve_matches)}")
+                collected.append((set(cve_matches), {
+                    "date": date,
+                    "title": title,
+                    "text": text_content,
+                    "source": "record"
+                }))
+        except Exception as e:
+            print(f"❌ Error processing article: {e}")
 
-print(f"\n✅ DONE. Saved {len(new_results)} new CVE-related article(s) to record_cve.json.")
+        fetched_articles += 1
+    page += 1
+
+print(f"📊 Finished scraping {fetched_articles} articles in total.")
+file_exists = os.path.exists(output_file)
+
+with open(output_file, "a", newline='', encoding="utf-8") as f:
+    writer = csv.DictWriter(f, fieldnames=["cve", "timestamp", "source", "text"])
+    if not file_exists:
+        writer.writeheader()
+
+    for cves, info in collected:
+        for cve in cves:
+            if not re.match(r'CVE-\d{4}-\d{4,7}', cve):
+                continue
+            writer.writerow({
+                "cve": cve,
+                "timestamp": info["date"],
+                "source": "record",
+                "text": clean_text(f"{info['title']} {info['text']}")
+            })
+
+print(f"\n✅ CSV file updated with {sum(len(cves) for cves, _ in collected)} CVE entries from The Record.")
 driver.quit()
+article_driver.quit()
