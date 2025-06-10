@@ -1,0 +1,7 @@
+Average Absolute Difference: 0.053302
+Category Match Rate: 89.14%
+
+Score Comparison Breakdown:
+  Same: 1166
+  Lower: 85
+  Higher: 57
