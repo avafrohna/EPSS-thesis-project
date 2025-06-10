@@ -1,5 +1,7 @@
 import pandas as pd
-from sklearn.metrics import classification_report, accuracy_score
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 
 csv_path = "all_sources/actual_vs_pred_20250606_121803.csv"
 
@@ -75,3 +77,28 @@ with open("analysis_summary.txt", "w") as f:
     f.write("\n".join(summary_lines))
 
 print("Summary text saved to analysis_summary.txt")
+
+labels = ['high', 'medium', 'low']
+cm = confusion_matrix(df['actual_category'], df['predicted_category'], labels=labels)
+
+comparison_counts = df['score_comparison'].value_counts()
+comparison_counts.plot(kind='bar', title='Score Comparison Breakdown', ylabel='Count')
+plt.xticks(rotation=0)
+plt.tight_layout()
+plt.savefig('score_comparison_breakdown.png')
+plt.show()
+
+plt.figure(figsize=(6, 4))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=labels, yticklabels=labels)
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion Matrix')
+plt.tight_layout()
+plt.savefig('confusion_matrix.png')
+plt.show()
+
+df['absolute_difference'].plot(kind='hist', bins=30, title='Distribution of Absolute Differences')
+plt.xlabel('Absolute Difference')
+plt.tight_layout()
+plt.savefig('absolute_difference_hist.png')
+plt.show()
