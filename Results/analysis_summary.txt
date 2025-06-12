@@ -14,3 +14,6 @@ Macro F1 Score: 0.7853
 Weighted Precision: 0.9162
 Weighted Recall: 0.8914
 Weighted F1 Score: 0.9001
+
+Within 10% Rate: 14.91%
+Within 20% Rate: 20.26%
