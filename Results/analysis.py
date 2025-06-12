@@ -32,6 +32,8 @@ df['category_match'] = df['actual_category'] == df['predicted_category']
 df['category_match'] = df['category_match'].map({True: 'yes', False: 'no'})
 
 df['score_comparison'] = df.apply(compare_scores, axis=1)
+df['within_10_percent'] = (df['absolute_difference'] <= 0.1 * df['predicted'])
+df['within_20_percent'] = (df['absolute_difference'] <= 0.2 * df['predicted'])
 
 output_path = "analysis.csv"
 df.to_csv(output_path, index=False)
@@ -70,8 +72,15 @@ summary_lines.extend([
     "",
     f"Weighted Precision: {weighted_precision:.4f}",
     f"Weighted Recall: {weighted_recall:.4f}",
-    f"Weighted F1 Score: {weighted_f1:.4f}"
+    f"Weighted F1 Score: {weighted_f1:.4f}",
+    ""
 ])
+
+pct_within_10 = df['within_10_percent'].mean()
+pct_within_20 = df['within_20_percent'].mean()
+
+summary_lines.append(f"Within 10% Rate: {pct_within_10:.2%}")
+summary_lines.append(f"Within 20% Rate: {pct_within_20:.2%}")
 
 with open("analysis_summary.txt", "w") as f:
     f.write("\n".join(summary_lines))
