@@ -87,6 +87,16 @@ with open("analysis_summary.txt", "w") as f:
 
 print("Summary text saved to analysis_summary.txt")
 
+rates = {'Within 10%': pct_within_10 * 100, 'Within 20%': pct_within_20 * 100}
+plt.figure()
+plt.bar(rates.keys(), rates.values())
+plt.ylim(0, 100)
+plt.ylabel('Percentage')
+plt.title('Percentage of Values Within Thresholds')
+plt.tight_layout()
+plt.savefig('within_thresholds.png')
+plt.show()
+
 labels = ['high', 'medium', 'low']
 cm = confusion_matrix(df['actual_category'], df['predicted_category'], labels=labels)
 
