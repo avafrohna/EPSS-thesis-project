@@ -3,7 +3,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix
 
-csv_path = "../final_plots_sbert_0_alpha/only_mastodon/actual_vs_pred_20250614_115856.csv"
+csv_path = "../final_plots_sbert_0_alpha/only_telegram/actual_vs_pred_20250614_120832.csv"
 
 df = pd.read_csv(csv_path)
 df['absolute_difference'] = (df['predicted'] - df['actual']).abs()
