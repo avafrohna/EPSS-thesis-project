@@ -1,0 +1,19 @@
+Average Absolute Difference: 0.049763
+Category Match Rate: 89.60%
+
+Score Comparison Breakdown:
+  Same: 1172
+  Higher: 69
+  Lower: 67
+
+Accuracy: 89.60%
+Macro Precision: 0.7919
+Macro Recall: 0.7832
+Macro F1 Score: 0.7743
+
+Weighted Precision: 0.9164
+Weighted Recall: 0.8960
+Weighted F1 Score: 0.9024
+
+Within 10% Rate: 16.59%
+Within 20% Rate: 21.48%
