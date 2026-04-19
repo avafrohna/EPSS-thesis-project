@@ -1,8 +1,8 @@
-# 🧠 Open Source EPSS Prediction Model
+# Open Source EPSS Prediction Model
 
-This project explores whether publicly available, community-driven threat intelligence can be used to approximate the Exploit Prediction Scoring System (EPSS) — a widely used but partially proprietary model for predicting the likelihood of software vulnerability exploitation.
+This project builds a machine learning model to approximate the Exploit Prediction Scoring System (EPSS) using only publicly available, community-driven threat intelligence.
 
-🔍 Built as part of my Bachelor Thesis at Vrije Universiteit Amsterdam
+🔍 Built as part of my Bachelor’s Thesis at Vrije Universiteit Amsterdam
 
 ## 🚨 Motivation
 
@@ -37,32 +37,34 @@ Each CVE entry includes:
 
 ## ⚙️ Approach
 
-Feature Engineering
+### Feature Engineering
 
 * Text embeddings using SentenceBERT (all-mpnet-base-v2)
 * CVSS metrics (severity + exploitability features)
 * CVE descriptions
 
-Model
+### Model
 
 * Multi-layer neural network (MLP)
 * Combines:
     * textual embeddings
     * structured vulnerability features
 
-Pipeline
+### Pipeline
 
 Scraping → Cleaning → Feature Engineering → Model → Prediction
 
 ## 📈 Results
 
-![Confusion Matrix](images/confusion_matrix.png)
-* ✅ ~90.37% accuracy in matching EPSS risk categories
-* 📉 Strong performance despite using only open-source data
-* 🔍 Found that:
-    * CVSS + CVE descriptions are the most predictive features
-    * Community sources act more as signals of activity than deep context
-    * Telegram contributed the most predictive value
+- ✅ **90.37%** category match rate between predicted and official EPSS risk levels
+- 🔍 **Telegram** contributed the strongest signal; **Mastodon** the weakest
+- 📉 CVSS metrics and CVE descriptions were more predictive than textual chatter alone
+
+![Confusion Matrix](Final%20Results/all_sources_results/confusion_matrix.png)
+
+*Confusion matrix showing performance across high, medium, and low EPSS risk categories.*
+
+- 🧠 Model combines SentenceBERT embeddings with structured CVSS features in a neural network architecture
 
 ## 🧪 Key Insights
 
@@ -77,11 +79,6 @@ Scraping → Cleaning → Feature Engineering → Model → Prediction
 * SentenceTransformers (SBERT)
 * Web scraping (BeautifulSoup, Selenium, APIs)
 * Data processing (NumPy, Pandas)
-
-## ▶️ How to Run
-git clone https://github.com/avafrohna/EPSS-thesis-project
-cd EPSS-thesis-project
-python main.py
 
 ## 📄 Thesis
 
